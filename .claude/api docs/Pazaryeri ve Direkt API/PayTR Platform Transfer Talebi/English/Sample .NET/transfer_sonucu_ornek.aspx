@@ -1,0 +1,1 @@
+﻿<%@ Page Language="C#" AutoEventWireup="true" CodeFile="transfer_sonucu_ornek.aspx.cs" Inherits="transfer_sonucu_ornek" %>

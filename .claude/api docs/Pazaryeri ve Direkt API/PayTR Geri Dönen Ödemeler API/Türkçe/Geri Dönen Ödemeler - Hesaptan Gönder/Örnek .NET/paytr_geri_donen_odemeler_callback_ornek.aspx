@@ -1,0 +1,1 @@
+﻿<%@ Page Language="C#" Debug="true" AutoEventWireup="true"  CodeFile="paytr_geri_donen_odemeler_callback_ornek.aspx.cs" Inherits="paytr_geri_donen_odemeler_callback_ornek" %>

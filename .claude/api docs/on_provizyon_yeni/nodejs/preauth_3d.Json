@@ -1,0 +1,90 @@
+
+// Mağaza bilgileri
+var merchant_id = 'XXXXXX'
+var merchant_key = 'XXXXXX'
+var merchant_salt = 'XXXXXX'
+
+// Kullanıcı bilgileri
+var user_ip = '';
+var email        = "testpreauth@paytr.com";
+var user_name    = 'TEST TEST';
+var user_address = 'TEST ADRES';
+var   = user_phone = '5555555555';
+
+var basket = JSON.stringify([
+    ['Örnek Ürün 1', '18.00', 1],
+    ['Örnek Ürün 2', '33.25', 2],
+    ['Örnek Ürün 3', '45.42', 1] ]);// Ürün ismi, Fiyat, Adet
+
+// Kart bilgileri
+var cc_owner  = 'TEST TEST';
+var card_number = '4355084355084358';
+var expiry_month  = '12';
+var expiry_year   = '99';
+var cvv       = '000';
+
+// İşlem bilgileri
+var auth_type = 'preauth';
+var merchant_oid      = 'TESTPREAUTH';
+var currency          = 'TL';
+var payment_amount    = '14.55';
+var payment_type      = 'card';
+var non_3d            = '1';
+var non3d_test_failed = '0';
+var card_type         = 'axess'; // advantage, axess, combo, bonus, cardfinans, maximum, paraf, world, saglamkart
+var installment_count = '1';
+var client_lang       = 'tr';
+var test_mode         = '0';
+var merchant_ok_url ="https://basarili.com";
+var merchant_fail_url ="https://basarisiz.com";
+
+
+// paytr_token
+var hashSTR = `${merchant_id}${user_ip}${merchant_oid}${email}${payment_amount}${payment_type}${installment_count}${currency}${test_mode}${non_3d}`;
+    console.log('HASH STR' + hashSTR);
+    var paytr_token = hashSTR + merchant_salt;
+    console.log('PAYTR TOKEN' + paytr_token);
+    var token = crypto.createHmac('sha256', merchant_key).update(paytr_token).digest('base64');
+	
+console.log('TOKEN' + token);
+    context = {
+		auth_type,
+        merchant_id,
+        user_ip,
+        merchant_oid,
+        email,
+        payment_type,
+        payment_amount,
+        merchant_ok_url,
+        merchant_fail_url,
+        currency,
+        test_mode,
+        non_3d,
+        user_name,
+        user_address,
+        user_basket,
+		user_phone,
+        client_lang,
+        token,
+        non3d_test_failed,
+        installment_count,
+        card_type,
+		card_number,
+		cc_number,
+		expiry_month,
+		expiry_year,
+		cvv,
+    };
+
+    res.render('index');
+});
+var callback = req.body;
+
+    paytr_token = callback.merchant_oid + merchant_salt + callback.status + callback.total_amount;
+    var token = crypto.createHmac('sha256', merchant_key).update(paytr_token).digest('base64');
+
+  
+var port = 3200;
+app.listen(port, function () {
+    console.log("Server is running. Port:" + port);
+});

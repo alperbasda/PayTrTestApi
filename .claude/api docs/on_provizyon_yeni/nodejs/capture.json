@@ -1,0 +1,45 @@
+
+// Mağaza bilgileri
+var merchant_id   = 'MAGAZA_NO';
+var merchant_key  = 'XXXXXXXXXXX';
+var merchant_salt = 'YYYYYYYYYYY';
+
+// Kullanıcı bilgileri
+var client_ip='';
+// İşlem bilgileri
+var auth_type ='capture';
+var payment_amount = '14.55';
+var reference_no   = 'AXXXXXXXXXXXXXXXX';
+var merchant_oid   = 'TESTPREAUTHXXX';
+var client_lang    = 'tr';
+var test_mode      = 0;
+
+// paytr_token
+var hashSTR = `${merchant_id}${client_ip}${merchant_oid}${reference_no}${payment_amount}`;
+console.log('HASH STR' + hashSTR);
+    var paytr_token = hashSTR + merchant_salt;
+    console.log('PAYTR TOKEN' + paytr_token);
+    var token = crypto.createHmac('sha256', merchant_key).update(paytr_token).digest('base64');
+	
+	
+console.log('TOKEN' + token);
+    context = {
+        auth_type,
+        paytr_token,
+        merchant_id,
+        merchant_oid,
+        reference_no,
+		payment_amount,
+        client_ip,
+        client_lang,
+        test_failed,
+    };
+ res.render('index');
+
+});
+
+
+var port = 3200;
+app.listen(port, function () {
+    console.log("Server is running. Port:" + port);
+});
