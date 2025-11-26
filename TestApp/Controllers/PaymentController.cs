@@ -1,7 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using PayTr.Models.Common;
 using PayTr.Models.Payments;
+using PayTr.Models.PreProvision;
 using PayTr.Payments;
+using PayTr.PreAuth;
+using PayTr.PreProvision;
 
 namespace TestApp.Controllers;
 [ApiController]
@@ -9,21 +12,27 @@ namespace TestApp.Controllers;
 public class PaymentController : ControllerBase
 {
     private readonly IPayTrPaymentService _paymentService;
+    private readonly IPayTrPreAuthService _preAuthService;
+    private readonly IPayTrPreProvisionCaptureService _captureService;
     private readonly IPayTrCallbackValidator _callbackValidator;
     private readonly ILogger<PaymentController> _logger;
 
     public PaymentController(
         IPayTrPaymentService paymentService,
+        IPayTrPreAuthService preAuthService,
+        IPayTrPreProvisionCaptureService captureService,
         IPayTrCallbackValidator callbackValidator,
         ILogger<PaymentController> logger)
     {
         _paymentService = paymentService;
+        _preAuthService = preAuthService;
+        _captureService = captureService;
         _callbackValidator = callbackValidator;
         _logger = logger;
     }
 
     /// <summary>
-    /// Ödeme baþlatýr (1 TL test ödemesi)
+    /// ï¿½deme baï¿½latï¿½r (1 TL test ï¿½demesi)
     /// </summary>
     [HttpGet("health")]
     public async Task<IActionResult> Health([FromBody] InitiatePaymentRequest? request = null)
@@ -31,14 +40,14 @@ public class PaymentController : ControllerBase
         return Ok();
     }
     /// <summary>
-    /// Ödeme baþlatýr (1 TL test ödemesi)
+    /// ï¿½deme baï¿½latï¿½r (1 TL test ï¿½demesi)
     /// </summary>
     [HttpPost("initiate")]
     public async Task<IActionResult> InitiatePayment([FromBody] InitiatePaymentRequest? request = null)
     {
         try
         {
-            // Test için default deðerler
+            // Test iï¿½in default deï¿½erler
             var merchantOid = $"1234halil";
 
             var paymentRequest = new PayTrPaymentInitRequest
@@ -59,34 +68,34 @@ public class PaymentController : ControllerBase
                 // IP adresini al
                 UserIp = GetClientIpAddress(),
 
-                // Callback URL'leri (kendi sunucunuz için güncelleyin)
+                // Callback URL'leri (kendi sunucunuz iï¿½in gï¿½ncelleyin)
                 MerchantOkUrl = request?.SuccessUrl ?? "http://localhost:5000/payment-success.html",
                 MerchantFailUrl = request?.FailUrl ?? "http://localhost:5000/payment-failed.html",
 
-                // Kullanýcý bilgileri
-                UserName = request?.UserName ?? "Test Kullanýcý",
-                UserAddress = request?.UserAddress ?? "Test Adres, Ýstanbul",
+                // Kullanï¿½cï¿½ bilgileri
+                UserName = request?.UserName ?? "Test Kullanï¿½cï¿½",
+                UserAddress = request?.UserAddress ?? "Test Adres, ï¿½stanbul",
                 UserPhone = request?.UserPhone ?? "05551234567",
 
-                // Sepet (1 TL'lik test ürünü)
+                // Sepet (1 TL'lik test ï¿½rï¿½nï¿½)
                 BasketItems = new List<PayTrBasketItem>
                 {
                     new()
                     {
-                        Name = "Test Ürün - 1 TL",
+                        Name = "Test ï¿½rï¿½n - 1 TL",
                         UnitPrice = 1.00m,
                         Quantity = 1
                     }
                 },
 
-                // Test ayarlarý
+                // Test ayarlarï¿½
                 TestMode = true,
                 DebugOn = true,
                 SyncMode = false, // Async mode (iframe ile)
                 ClientLanguage = PayTrLanguage.Turkish
             };
 
-            _logger.LogInformation("Ödeme baþlatýlýyor. MerchantOid: {MerchantOid}", merchantOid);
+            _logger.LogInformation("ï¿½deme baï¿½latï¿½lï¿½yor. MerchantOid: {MerchantOid}", merchantOid);
 
             var result = await _paymentService.InitPaymentAsync(paymentRequest);
 
@@ -94,7 +103,7 @@ public class PaymentController : ControllerBase
             {
                 var iframeUrl = result.GetIframeUrl();
 
-                _logger.LogInformation("Ödeme baþarýyla baþlatýldý. Token: {Token}", result.Token);
+                _logger.LogInformation("ï¿½deme baï¿½arï¿½yla baï¿½latï¿½ldï¿½. Token: {Token}", result.Token);
 
                 return Ok(new
                 {
@@ -103,42 +112,245 @@ public class PaymentController : ControllerBase
                     status = result.Status,
                     token = result.Token,
                     iframeUrl = iframeUrl,
-                    message = "Ödeme baþarýyla baþlatýldý. IFrame URL'sini kullanarak ödeme sayfasýna yönlendirin."
+                    message = "ï¿½deme baï¿½arï¿½yla baï¿½latï¿½ldï¿½. IFrame URL'sini kullanarak ï¿½deme sayfasï¿½na yï¿½nlendirin."
                 });
             }
 
-            _logger.LogWarning("Ödeme baþlatýlamadý. Status: {Status}, Message: {Message}", result.Status, result.Message);
+            _logger.LogWarning("ï¿½deme baï¿½latï¿½lamadï¿½. Status: {Status}, Message: {Message}", result.Status, result.Message);
 
             return BadRequest(new
             {
                 success = false,
                 status = result.Status,
-                message = result.Message ?? "Ödeme baþlatýlamadý"
+                message = result.Message ?? "ï¿½deme baï¿½latï¿½lamadï¿½"
             });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ödeme baþlatýlýrken hata oluþtu");
+            _logger.LogError(ex, "ï¿½deme baï¿½latï¿½lï¿½rken hata oluï¿½tu");
             return StatusCode(500, new
             {
                 success = false,
-                message = "Sunucu hatasý: " + ex.Message
+                message = "Sunucu hatasï¿½: " + ex.Message
+            });
+        }
+    }
+
+    /// <summary>
+    /// Ã–n provizyon (pre-authorization) iÅŸlemi baÅŸlatÄ±r
+    /// </summary>
+    [HttpPost("preauth")]
+    public async Task<IActionResult> InitiatePreAuth([FromBody] InitiatePreAuthRequest? request = null)
+    {
+        try
+        {
+            // Test iÃ§in default deÄŸerler
+            var merchantOid = $"1234halil";
+
+            var preAuthRequest = new PayTrPreAuthRequest
+            {
+                // Kart bilgileri (zorunlu)
+                CardHolderName = request?.CardHolderName ?? "PAYTR TEST",
+                CardNumber = request?.CardNumber ?? "9792030394440796",
+                ExpiryYear = request?.ExpiryYear ?? "30",
+                ExpiryMonth = request?.ExpiryMonth ?? "12",
+                Cvv = request?.Cvv ?? "000",
+
+                // Ä°ÅŸlem bilgileri
+                MerchantOid = merchantOid,
+                Email = request?.Email ?? "test@example.com",
+                PaymentAmount = request?.Amount ?? 10.00m,
+                Currency = PayTrCurrency.TL,
+                InstallmentCount = request?.InstallmentCount ?? 0,
+                PaymentType = PayTrPaymentType.Card,
+
+                // Non-3D veya 3D
+                Non3d = request?.Non3d ?? true,
+
+                // IP adresini al
+                UserIp = GetClientIpAddress(),
+
+                // 3D iÃ§in callback URL'leri (isteÄŸe baÄŸlÄ±, 3D secure kullanÄ±lÄ±rsa gerekli)
+                MerchantOkUrl = request?.SuccessUrl,
+                MerchantFailUrl = request?.FailUrl,
+
+                // KullanÄ±cÄ± bilgileri
+                UserName = request?.UserName ?? "Test KullanÄ±cÄ±",
+                UserAddress = request?.UserAddress ?? "Test Adres, Ä°stanbul",
+                UserPhone = request?.UserPhone ?? "05551234567",
+
+                // Sepet
+                BasketItems = new List<PayTrBasketItem>
+                {
+                    new()
+                    {
+                        Name = request?.ProductName ?? "Test ÃœrÃ¼n - Ã–n Provizyon",
+                        UnitPrice = request?.Amount ?? 10.00m,
+                        Quantity = 1
+                    }
+                },
+
+                // Test ayarlarÄ±
+                TestMode = true,
+                ClientLanguage = PayTrLanguage.Turkish,
+                CardType = request?.CardType
+            };
+
+            _logger.LogInformation("Ã–n provizyon baÅŸlatÄ±lÄ±yor. MerchantOid: {MerchantOid}, Tutar: {Amount}",
+                merchantOid, preAuthRequest.PaymentAmount);
+
+            var result = await _preAuthService.InitPreAuthAsync(preAuthRequest);
+
+            if (result.IsSuccessful)
+            {
+                _logger.LogInformation("Ã–n provizyon baÅŸarÄ±lÄ±. MerchantOid: {MerchantOid}, TransactionId: {TransactionId}",
+                    result.MerchantOid, result.TransactionId);
+
+                return Ok(new
+                {
+                    success = true,
+                    merchantOid = result.MerchantOid,
+                    transactionId = result.TransactionId,
+                    status = result.Status,
+                    paymentAmount = result.PaymentAmount,
+                    currency = result.Currency,
+                    cardBrand = result.CardBrand,
+                    message = "Ã–n provizyon baÅŸarÄ±yla tamamlandÄ±. Bu tutar bloke edildi ve sonradan tahsil edilebilir veya iptal edilebilir."
+                });
+            }
+
+            _logger.LogWarning("Ã–n provizyon baÅŸarÄ±sÄ±z. Status: {Status}, Reason: {Reason}",
+                result.Status, result.Reason);
+
+            return BadRequest(new
+            {
+                success = false,
+                status = result.Status,
+                reason = result.Reason,
+                message = result.Reason ?? "Ã–n provizyon iÅŸlemi baÅŸarÄ±sÄ±z oldu"
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ã–n provizyon baÅŸlatÄ±lÄ±rken hata oluÅŸtu");
+            return StatusCode(500, new
+            {
+                success = false,
+                message = "Sunucu hatasÄ±: " + ex.Message
+            });
+        }
+    }
+
+    /// <summary>
+    /// Ã–n provizyon capture (tahsilat) iÅŸlemi yapar
+    /// Bloke edilen tutarÄ± tahsil eder
+    /// </summary>
+    [HttpPost("preprovision/capture")]
+    public async Task<IActionResult> CapturePreProvision([FromBody] CapturePreProvisionRequest? request = null)
+    {
+        try
+        {
+            if (request == null)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Request body gereklidir"
+                });
+            }
+
+            if (string.IsNullOrWhiteSpace(request.MerchantOid))
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "MerchantOid gereklidir"
+                });
+            }
+
+            if (string.IsNullOrWhiteSpace(request.ReferenceNo))
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "ReferenceNo gereklidir (Ã¶n provizyon iÅŸleminden dÃ¶nen)"
+                });
+            }
+
+            if (request.CaptureAmount <= 0)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "CaptureAmount sÄ±fÄ±rdan bÃ¼yÃ¼k olmalÄ±dÄ±r"
+                });
+            }
+
+            var captureRequest = new PayTrPreProvisionCaptureRequest
+            {
+                MerchantOid = request.MerchantOid,
+                ReferenceNo = request.ReferenceNo,
+                CaptureAmount = request.CaptureAmount,
+                ClientIp = GetClientIpAddress(),
+                TestMode = request.TestMode ?? true,
+                ClientLanguage = PayTrLanguage.Turkish
+            };
+
+            _logger.LogInformation("Capture iÅŸlemi baÅŸlatÄ±lÄ±yor. MerchantOid: {MerchantOid}, ReferenceNo: {ReferenceNo}, Tutar: {Amount}",
+                captureRequest.MerchantOid, captureRequest.ReferenceNo, captureRequest.CaptureAmount);
+
+            var result = await _captureService.CaptureAsync(captureRequest);
+
+            if (result.IsSuccessful)
+            {
+                _logger.LogInformation("Capture baÅŸarÄ±lÄ±. MerchantOid: {MerchantOid}, ReferenceNo: {ReferenceNo}",
+                    result.MerchantOid, result.ReferenceNo);
+
+                return Ok(new
+                {
+                    success = true,
+                    status = result.Status,
+                    merchantOid = result.MerchantOid,
+                    referenceNo = result.ReferenceNo,
+                    capturedAmount = result.PaymentAmount,
+                    message = "Ã–n provizyon tutarÄ± baÅŸarÄ±yla tahsil edildi (capture)"
+                });
+            }
+
+            _logger.LogWarning("Capture baÅŸarÄ±sÄ±z. Status: {Status}, Reason: {Reason}",
+                result.Status, result.Reason);
+
+            return BadRequest(new
+            {
+                success = false,
+                status = result.Status,
+                reason = result.Reason,
+                message = result.Reason ?? "Capture iÅŸlemi baÅŸarÄ±sÄ±z oldu"
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Capture iÅŸlemi sÄ±rasÄ±nda hata oluÅŸtu");
+            return StatusCode(500, new
+            {
+                success = false,
+                message = "Sunucu hatasÄ±: " + ex.Message
             });
         }
     }
 
     /// <summary>
     /// PayTR'den gelen callback (bildirim URL)
-    /// Bu endpoint'i PayTR panelinde "Bildirim URL" olarak ayarlamalýsýnýz
+    /// Bu endpoint'i PayTR panelinde "Bildirim URL" olarak ayarlamalï¿½sï¿½nï¿½z
     /// </summary>
     [HttpPost("callback")]
     public IActionResult PayTrCallback([FromForm] Dictionary<string, string> formData)
     {
         try
         {
-            _logger.LogInformation("PayTR callback alýndý. Form data: {@FormData}", formData);
+            _logger.LogInformation("PayTR callback alï¿½ndï¿½. Form data: {@FormData}", formData);
 
-            // Form data'yý payload'a dönüþtür
+            // Form data'yï¿½ payload'a dï¿½nï¿½ï¿½tï¿½r
             var payload = new PayTrPaymentCallbackPayload
             {
                 MerchantOid = formData.GetValueOrDefault("merchant_oid", ""),
@@ -154,42 +366,42 @@ public class PaymentController : ControllerBase
                 FailedReasonMessage = formData.GetValueOrDefault("failed_reason_msg", null)
             };
 
-            // Hash doðrulama
+            // Hash doï¿½rulama
             if (!_callbackValidator.TryValidate(payload))
             {
-                _logger.LogError("PayTR callback hash doðrulamasý baþarýsýz! MerchantOid: {MerchantOid}", payload.MerchantOid);
+                _logger.LogError("PayTR callback hash doï¿½rulamasï¿½ baï¿½arï¿½sï¿½z! MerchantOid: {MerchantOid}", payload.MerchantOid);
                 return Ok("PAYTR notification failed: bad hash");
             }
 
-            _logger.LogInformation("PayTR callback hash doðrulamasý baþarýlý. MerchantOid: {MerchantOid}, Status: {Status}",
+            _logger.LogInformation("PayTR callback hash doï¿½rulamasï¿½ baï¿½arï¿½lï¿½. MerchantOid: {MerchantOid}, Status: {Status}",
                 payload.MerchantOid, payload.Status);
 
-            // Sipariþ durumu kontrolü (normalde veritabanýndan kontrol edilmeli)
+            // Sipariï¿½ durumu kontrolï¿½ (normalde veritabanï¿½ndan kontrol edilmeli)
             if (payload.Status == "success")
             {
-                // Ödeme baþarýlý
-                _logger.LogInformation("Ödeme baþarýlý! MerchantOid: {MerchantOid}, Tutar: {Amount}",
+                // ï¿½deme baï¿½arï¿½lï¿½
+                _logger.LogInformation("ï¿½deme baï¿½arï¿½lï¿½! MerchantOid: {MerchantOid}, Tutar: {Amount}",
                     payload.MerchantOid, payload.PaymentAmount / 100.0m);
 
-                // TODO: Veritabanýnda sipariþ durumunu güncelle
-                // TODO: Gerekirse e-posta/SMS gönder
+                // TODO: Veritabanï¿½nda sipariï¿½ durumunu gï¿½ncelle
+                // TODO: Gerekirse e-posta/SMS gï¿½nder
 
                 return Ok("OK");
             }
             else
             {
-                // Ödeme baþarýsýz
-                _logger.LogWarning("Ödeme baþarýsýz! MerchantOid: {MerchantOid}, Hata: {ErrorCode} - {ErrorMessage}",
+                // ï¿½deme baï¿½arï¿½sï¿½z
+                _logger.LogWarning("ï¿½deme baï¿½arï¿½sï¿½z! MerchantOid: {MerchantOid}, Hata: {ErrorCode} - {ErrorMessage}",
                     payload.MerchantOid, payload.FailedReasonCode, payload.FailedReasonMessage);
 
-                // TODO: Veritabanýnda sipariþ durumunu güncelle (iptal)
+                // TODO: Veritabanï¿½nda sipariï¿½ durumunu gï¿½ncelle (iptal)
 
                 return Ok("OK");
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "PayTR callback iþlenirken hata oluþtu");
+            _logger.LogError(ex, "PayTR callback iï¿½lenirken hata oluï¿½tu");
             return Ok("ERROR");
         }
     }
@@ -199,7 +411,7 @@ public class PaymentController : ControllerBase
     /// </summary>
     private string GetClientIpAddress()
     {
-        // X-Forwarded-For header'ýný kontrol et (proxy arkasýndaysa)
+        // X-Forwarded-For header'ï¿½nï¿½ kontrol et (proxy arkasï¿½ndaysa)
         var forwardedFor = Request.Headers["X-Forwarded-For"].FirstOrDefault();
         if (!string.IsNullOrEmpty(forwardedFor))
         {
@@ -210,11 +422,11 @@ public class PaymentController : ControllerBase
         // Remote IP adresini al
         var remoteIp = HttpContext.Connection.RemoteIpAddress?.ToString();
 
-        // Localhost ise dýþ IP kullan (PayTR localhost kabul etmiyor)
+        // Localhost ise dï¿½ï¿½ IP kullan (PayTR localhost kabul etmiyor)
         if (remoteIp == "::1" || remoteIp == "127.0.0.1")
         {
-            // Test için geçici bir IP (production'da gerçek IP kullanýlmalý)
-            return "85.105.78.56"; // Örnek bir Türkiye IP'si
+            // Test iï¿½in geï¿½ici bir IP (production'da gerï¿½ek IP kullanï¿½lmalï¿½)
+            return "85.105.78.56"; // ï¿½rnek bir Tï¿½rkiye IP'si
         }
 
         return remoteIp ?? "127.0.0.1";
@@ -222,7 +434,7 @@ public class PaymentController : ControllerBase
 }
 
 /// <summary>
-/// Ödeme baþlatma isteði
+/// ï¿½deme baï¿½latma isteï¿½i
 /// </summary>
 public class InitiatePaymentRequest
 {
@@ -232,4 +444,49 @@ public class InitiatePaymentRequest
     public string? UserPhone { get; set; }
     public string? SuccessUrl { get; set; }
     public string? FailUrl { get; set; }
+}
+
+/// <summary>
+/// Ã–n provizyon baÅŸlatma isteÄŸi
+/// </summary>
+public class InitiatePreAuthRequest
+{
+    public string? Email { get; set; }
+    public string? UserName { get; set; }
+    public string? UserAddress { get; set; }
+    public string? UserPhone { get; set; }
+    public decimal? Amount { get; set; }
+    public string? ProductName { get; set; }
+    public int? InstallmentCount { get; set; }
+    public bool? Non3d { get; set; }
+
+    // Kart bilgileri
+    public string? CardHolderName { get; set; }
+    public string? CardNumber { get; set; }
+    public string? ExpiryMonth { get; set; }
+    public string? ExpiryYear { get; set; }
+    public string? Cvv { get; set; }
+    public string? CardType { get; set; }
+
+    // 3D Secure iÃ§in (opsiyonel)
+    public string? SuccessUrl { get; set; }
+    public string? FailUrl { get; set; }
+}
+
+/// <summary>
+/// Ã–n provizyon capture (tahsilat) isteÄŸi
+/// </summary>
+public class CapturePreProvisionRequest
+{
+    /// <summary>SipariÅŸ numarasÄ± (Ã¶n provizyon iÅŸlemindeki)</summary>
+    public string MerchantOid { get; set; } = string.Empty;
+
+    /// <summary>Ã–n provizyon iÅŸleminden dÃ¶nen referans numarasÄ±</summary>
+    public string ReferenceNo { get; set; } = string.Empty;
+
+    /// <summary>Capture edilecek tutar (TL)</summary>
+    public decimal CaptureAmount { get; set; }
+
+    /// <summary>Test modu</summary>
+    public bool? TestMode { get; set; }
 }

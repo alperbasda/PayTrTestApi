@@ -12,6 +12,8 @@ using PayTr.Installment;
 using PayTr.CardStorage;
 using PayTr.Marketplace;
 using PayTr.ReturningPayments;
+using PayTr.PreAuth;
+using PayTr.PreProvision;
 
 namespace PayTr.Configuration;
 
@@ -57,6 +59,8 @@ public static class PayTrServiceCollectionExtensions
         services.TryAddScoped<IPayTrPaymentService, PayTrPaymentService>();
         services.TryAddScoped<IPayTrCallbackValidator, PayTrCallbackValidator>();
         services.TryAddScoped<IPayTrRecurringPaymentService, PayTrRecurringPaymentService>();
+        services.TryAddScoped<IPayTrPreAuthService, PayTrPreAuthService>();
+        services.TryAddScoped<IPayTrPreProvisionCaptureService, PayTrPreProvisionCaptureService>();
 
         // TODO: Aşağıdaki servisler henüz implement edilmedi
         // services.TryAddScoped<IPayTrRefundService, PayTrRefundService>();
