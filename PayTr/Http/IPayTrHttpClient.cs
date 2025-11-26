@@ -17,4 +17,16 @@ public interface IPayTrHttpClient
         string relativeUrl,
         IDictionary<string, string> formData,
         CancellationToken ct = default);
+
+    /// <summary>
+    /// Form-urlencoded POST isteği gönderir ve string olarak cevap döner
+    /// </summary>
+    /// <param name="relativeUrl">Endpoint (örn: /odeme/capi/list)</param>
+    /// <param name="formData">Form data</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>Response string</returns>
+    Task<string> PostFormAsStringAsync(
+        string relativeUrl,
+        IDictionary<string, string> formData,
+        CancellationToken ct = default);
 }

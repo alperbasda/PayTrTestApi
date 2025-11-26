@@ -68,4 +68,31 @@ public sealed class PayTrHttpClient : IPayTrHttpClient
 
         return result;
     }
+
+    /// <summary>
+    /// Form-urlencoded POST isteği gönderir ve string olarak cevap döner
+    /// </summary>
+    public async Task<string> PostFormAsStringAsync(
+        string relativeUrl,
+        IDictionary<string, string> formData,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(relativeUrl))
+            throw new ArgumentException("Relative URL boş olamaz", nameof(relativeUrl));
+
+        if (formData == null || formData.Count == 0)
+            throw new ArgumentException("Form data boş olamaz", nameof(formData));
+
+        // Form content oluştur
+        using var content = new FormUrlEncodedContent(formData);
+
+        // POST isteği gönder
+        var response = await _httpClient.PostAsync(relativeUrl, content, ct);
+
+        // Hata kontrolü
+        response.EnsureSuccessStatusCode();
+
+        // String olarak oku
+        return await response.Content.ReadAsStringAsync(ct);
+    }
 }

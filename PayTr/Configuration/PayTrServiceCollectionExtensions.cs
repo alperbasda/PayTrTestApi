@@ -61,6 +61,7 @@ public static class PayTrServiceCollectionExtensions
         services.TryAddScoped<IPayTrRecurringPaymentService, PayTrRecurringPaymentService>();
         services.TryAddScoped<IPayTrPreAuthService, PayTrPreAuthService>();
         services.TryAddScoped<IPayTrPreProvisionCaptureService, PayTrPreProvisionCaptureService>();
+        services.TryAddScoped<IPayTrCardStorageService, PayTrCardStorageService>();
 
         // TODO: Aşağıdaki servisler henüz implement edilmedi
         // services.TryAddScoped<IPayTrRefundService, PayTrRefundService>();
@@ -68,7 +69,6 @@ public static class PayTrServiceCollectionExtensions
         // services.TryAddScoped<IPayTrReportService, PayTrReportService>();
         // services.TryAddScoped<IPayTrBinService, PayTrBinService>();
         // services.TryAddScoped<IPayTrInstallmentService, PayTrInstallmentService>();
-        // services.TryAddScoped<IPayTrCardStorageService, PayTrCardStorageService>();
         // services.TryAddScoped<IPayTrPlatformTransferService, PayTrPlatformTransferService>();
         // services.TryAddScoped<IPayTrReturningPaymentService, PayTrReturningPaymentService>();
 
